@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>모원치 오프신청폼</title>
+
+<style>
+  :root{
+    --bg:#f7f9fc; --card:#fff; --ink:#1d2330; --muted:#6b7280;
+    --pri:#2563eb; --pri-100:#e0e7ff; --ok:#16a34a; --warn:#ef4444;
+    --line:#e5e7eb;
+    --cell-w: clamp(80px, 12vw, 140px);
+    --cell-h: clamp(70px, 12vw, 120px);
+    --cell-pad: 8px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1600px; margin:28px auto; padding:0 16px}
+  h1{font-size:22px; margin:0 0 6px}
+  .row{display:grid; grid-template-columns:1.05fr 2.95fr; gap:16px; align-items:start}
+  .card{background:var(--card); border-radius:14px; box-shadow:0 2px 10px rgba(2,8,20,.06); padding:14px}
+  .card h2{margin:0 0 10px; font-size:18px}
+  label{display:block; margin:6px 0}
+  select,button,input[type="text"],input[type="password"],input[type="number"]{
+    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:10px; font-size:14px; background:#fff
+  }
+
+  .grid{display:grid; grid-template-columns:repeat(7, minmax(var(--cell-w), 1fr)); gap:8px}
+  .dow{background:#eef3ff; border-radius:10px; text-align:center; padding:8px 0; font-weight:600; font-size:13px}
+  .cell{
+    background:#fff; min-height:var(--cell-h);
+    border:1px solid var(--line); border-radius:10px; padding:var(--cell-pad);
+    position:relative; font-size:13px; line-height:1.25;
+  }
+  .cell.muted{background:#f3f4f6}
+  .cell .day{font-weight:700}
+  .cell .holiday{color:#dc2626; font-weight:700}
+
+  .cell .names{margin-top:6px; display:flex; flex-wrap:wrap; gap:6px; align-items:flex-start;}
+  .name-pill{
+    display:inline-flex; align-items:center; gap:6px; padding:2px 8px;
+    border-radius:8px; background:#f3f4f6; border:1px solid #e5e7eb;
+    font-size:12px; line-height:1; white-space:nowrap; writing-mode:horizontal-tb;
+  }
+  .name-pill>span{white-space:nowrap; writing-mode:horizontal-tb;}
+  .name-del{visibility:hidden}
+  .cell:hover .name-del{visibility:visible}
+
+  .head{display:flex; gap:8px; align-items:center; margin-bottom:10px; justify-content:space-between}
+  .badge{display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:var(--pri-100); color:var(--pri)}
+  .status{margin-top:10px; font-size:14px}
+  .ok{color:var(--ok)} .warn{color:var(--warn)}
+  .dates{max-height:360px; overflow:auto; border:1px solid var(--line); border-radius:10px; padding:10px; background:#fff}
+  .date-item{display:flex; align-items:center; gap:8px; padding:6px 4px; border-bottom:1px dashed #f0f0f0}
+  .date-item:last-child{border-bottom:none}
+  .pill{display:inline-block; padding:2px 6px; border-radius:8px; font-size:12px; background:#f3f4f6; color:#4b5563}
+  .actions{display:flex; gap:8px; margin-top:12px}
+  .btn{display:inline-flex; gap:8px; align-items:center; justify-content:center; padding:8px 12px; border-radius:10px; border:1px solid var(--line); background:#fff; cursor:pointer; font-size:13px}
+  .btn.small{padding:2px 6px; font-size:12px}
+  .btn.primary{background:var(--pri); color:#fff; border-color:var(--pri)}
+  .btn.warn{background:#fff0f0; color:#b91c1c; border-color:#fecaca}
+  .cap{color:#4b5563; font-size:12px; margin-left:4px}
+  .disabled{opacity:.55}
+  .legend{display:flex; gap:8px; align-items:center; margin:6px 0 10px}
+  .legend .box{width:12px; height:12px; border-radius:3px; display:inline-block; border:1px solid var(--line)}
+  .box-muted{background:#f3f4f6}
+  .box-full{background:#fee2e2; border:1px solid #fecaca}
+  .calendar-bar{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .section{display:grid; grid-template-columns:1fr; gap:14px}
+  .side-columns{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  .panel{background:#fafafa; border:1px solid var(--line); border-radius:12px; padding:10px}
+  .panel h3{margin:0 0 8px; font-size:16px}
+  .pending-name{display:flex; gap:6px; align-items:center; justify-content:space-between; padding:6px 8px; border-bottom:1px dashed #eaeaea}
+  .pending-name:last-child{border-bottom:none}
+  .pending-left{display:flex; gap:8px; align-items:center}
+  .pending-time{font-size:12px; color:#6b7280}
+  .pending-actions{display:flex; gap:6px}
+
+  .closed-note{margin:8px 0 0; font-size:22px; font-weight:800; color:#111827; white-space:nowrap;}
+  #countdown{margin-top:6px; font-size:22px; font-weight:800; color:#2563eb; white-space:nowrap;}
+
+  .maskable{position:relative}
+  .maskable.disabled{pointer-events:none; user-select:none}
+  .maskable.disabled::after{
+    content:""; position:absolute; inset:0; background:rgba(255,255,255,.6);
+    backdrop-filter:saturate(0.4) blur(1px); border-radius:12px;
+  }
+
+  @media (max-width: 1100px){
+    .row{grid-template-columns:1fr}
+    .dates{max-height:300px}
+  }
+
+  .pill-tools{display:inline-flex; gap:4px; align-items:center}
+  .color-sel{border:1px solid var(--line); border-radius:8px; padding:2px 4px; font-size:12px}
+</style>
+</head>
+<body>
+
+<div id="app" class="wrap">
+  <h1>모원치 오프신청폼</h1>
+
+  <div class="row">
+    <!-- 좌측: 신청 폼 -->
+    <div class="card" id="formCard">
+      <div class="head">
+        <h2>신청 폼</h2>
+        <span class="badge">승인 대기 → 관리자 승인 시 달력 반영</span>
+      </div>
+
+      <div id="openNote" class="closed-note" style="display:none;">
+        매월 25일 9시~말일 오픈
+        <div id="countdown"></div>
+      </div>
+
+      <div class="maskable" id="formMask">
+        <label>이름</label>
+        <select id="nameSelect"></select>
+
+        <div class="legend">
+          <span class="box box-full"></span><span class="cap">정원 마감</span>
+          <span class="box box-muted"></span><span class="cap">이번 달 외/공백</span>
+        </div>
+
+        <label style="margin-top:8px;">희망 날짜 (선택 월만 표시 · 공휴일 제외)</label>
+        <div id="dates" class="dates"></div>
+
+        <div class="actions">
+          <button id="submitBtn" class="btn primary">제출(승인 대기)</button>
+          <button id="clearBtn" class="btn">선택 초기화</button>
+        </div>
+
+        <div id="result" class="status"></div>
+      </div>
+    </div>
+
+    <!-- 우측: 달력 + 패널 -->
+    <div class="card" id="calendarCard">
+      <div class="head">
+        <div class="calendar-bar">
+          <h2 style="margin:0;">달력</h2>
+          <select id="monthSelect"></select>
+        </div>
+        <div class="lock">
+          <input id="adminPw" type="password" placeholder="관리자 비밀번호" />
+          <button id="adminBtn" class="btn">관리자 모드 OFF</button>
+        </div>
+      </div>
+
+      <div class="maskable" id="calendarMask">
+        <div class="section">
+          <div id="calendar"></div>
+
+          <div class="side-columns">
+            <div class="panel admin-only">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>대기자 목록</h3>
+                <span class="badge" id="pendingMonthLabel"></span>
+              </div>
+              <div id="pendingList" style="max-height:360px; overflow:auto;"></div>
+              <div style="font-size:12px; color:var(--muted); margin-top:6px;">관리자 모드에서 각 이름 옆 <b>O,X</b>로 승인/거절</div>
+            </div>
+
+            <div>
+              <div class="panel admin-only" style="margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <h3>정원 설정</h3>
+                  <div style="color:#6b7280; font-size:12px;">관리자 모드에서 즉시 편집 가능</div>
+                </div>
+                <div id="capList" style="max-height:300px; overflow:auto; margin-top:8px;"></div>
+                <button id="capSaveBtn" class="btn primary" style="width:100%; margin-top:10px;">정원 저장</button>
+              </div>
+
+              <div class="panel admin-only">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <h3>이름 관리</h3>
+                  <div style="color:#6b7280; font-size:12px;">관리자 모드에서 즉시 편집 가능</div>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                  <input id="rosterNew" type="text" placeholder="이름 추가" />
+                  <button id="rosterAddBtn" class="btn">추가</button>
+                </div>
+                <div id="rosterList" style="max-height:260px; overflow:auto; margin-top:8px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /maskable -->
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========= CONFIG ========= */
+const CONFIG = {
+  ADMIN_PW: '0000',
+  DATE_RANGE: { start: '2026-01-01', end: '2026-12-31' },
+  DEFAULT_ROSTER: ['김영미','최진아','신은비','유승아','정민지','김다빈','김민지','남윤주','오지수','조예진','김영빈'],
+  WEEKDAY_KO: ['일','월','화','수','목','금','토'],
+  CAPACITY_BY_WEEKDAY: { 0:0, 1:1, 2:2, 3:3, 4:3, 5:1, 6:1 },
+  HOLIDAYS_2026: {
+    '2026-01-01':'신정','2026-03-01':'삼일절','2026-05-05':'어린이날','2026-06-06':'현충일','2026-08-15':'광복절','2026-10-03':'개천절','2026-10-09':'한글날','2026-12-25':'성탄절',
+    '2026-02-16':'설날 연휴','2026-02-17':'설날','2026-02-18':'설날 연휴',
+    '2026-05-24':'부처님오신날','2026-05-25':'대체공휴일',
+    '2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-26':'추석 연휴'
+  },
+  COLOR_PALETTE: [
+    {name:'빨', val:'#ff0000'},{name:'주', val:'#ff7f00'},{name:'노', val:'#ffd400'},
+    {name:'초', val:'#22c55e'},{name:'파', val:'#3b82f6'},{name:'남', val:'#1d4ed8'},
+    {name:'보', val:'#8b5cf6'},{name:'검', val:'#111111'},
+  ],
+  DEFAULT_NAME_COLOR: '#111111'
+};
+
+/* ========= STORAGE ========= */
+const STORE_KEY = 'fcfs-calendar-v3';
+const $ = (sel)=>document.querySelector(sel);
+function loadStore(){
+  try{
+    const s = JSON.parse(localStorage.getItem(STORE_KEY));
+    return s || {counts:{}, mapByDate:{}, mapColors:{}, overrides:{}, pending:{}};
+  }catch(e){ return {counts:{}, mapByDate:{}, mapColors:{}, overrides:{}, pending:{}}; }
+}
+function saveStore(s){ localStorage.setItem(STORE_KEY, JSON.stringify(s)); }
+
+/* ========= 시간/오픈윈도우(KST 고정) =========
+   KST 절대시각(+09:00)을 Date.parse로 UTC ms로 만든 뒤 Date.now()와 비교 */
+function daysInMonth(y,m){ return new Date(y, m, 0).getDate(); }
+function openWindowUTCFor(year, month){
+  const mm = String(month).padStart(2,'0');
+  const startUTC = Date.parse(`${year}-${mm}-25T09:00:00+09:00`); // 25일 09:00:00 KST
+  const last = daysInMonth(year, month);
+  const endUTC = Date.parse(`${year}-${mm}-${String(last).padStart(2,'0')}T23:59:59+09:00`); // 말일 23:59:59 KST
+  return {startUTC, endUTC};
+}
+function isOpenNowKST(){
+  const now = Date.now();
+  const n = new Date();
+  const y = n.getFullYear(), m = n.getMonth()+1;
+  const {startUTC, endUTC} = openWindowUTCFor(y, m);
+  return now >= startUTC && now <= endUTC;
+}
+function nextOpenStartUTC(){
+  const now = Date.now();
+  const n = new Date();
+  const y = n.getFullYear(), m = n.getMonth()+1;
+  const {startUTC, endUTC} = openWindowUTCFor(y, m);
+  if (now < startUTC) return startUTC;
+  const ny = (m===12) ? y+1 : y;
+  const nm = (m===12) ? 1 : m+1;
+  return openWindowUTCFor(ny, nm).startUTC;
+}
+
+/* ========= 오픈/마스킹/카운트다운 & 자동감시 ========= */
+let adminMode = false;
+let countdownTimer = null;
+let watchTimer = null;
+let lastOpenState = null;
+
+function setInteractiveEnabled(enabled){
+  $('#formMask').classList.toggle('disabled', !enabled);
+  $('#calendarMask').classList.toggle('disabled', !enabled);
+  document.querySelectorAll('#dates input[type=checkbox]').forEach(cb=>{
+    const rowDisabled = cb.closest('.date-item')?.classList.contains('disabled');
+    cb.disabled = !enabled || rowDisabled;
+  });
+}
+function applyOpenState(){
+  const note = $('#openNote'); const cd = $('#countdown');
+  if (adminMode){ setInteractiveEnabled(true); note.style.display = 'none'; stopCountdown(); return; }
+  if (isOpenNowKST()){ setInteractiveEnabled(true); note.style.display = 'none'; stopCountdown(); }
+  else { setInteractiveEnabled(false); note.style.display = ''; startCountdown(cd); }
+}
+function startCountdown(el){
+  stopCountdown();
+  const targetUTC = nextOpenStartUTC();
+  function tick(){
+    let diff = targetUTC - Date.now();
+    if (diff < 0) diff = 0;
+    const sec = Math.floor(diff/1000);
+    const d = Math.floor(sec/86400);
+    const h = Math.floor((sec%86400)/3600);
+    const m = Math.floor((sec%3600)/60);
+    const s = sec%60;
+    el.textContent = `오픈까지 D-${d} ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+  tick();
+  countdownTimer = setInterval(tick, 1000);
+}
+function stopCountdown(){ if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; } }
+
+function startOpenWatcher(){
+  if (watchTimer) clearInterval(watchTimer);
+  lastOpenState = isOpenNowKST();
+  watchTimer = setInterval(()=>{
+    if (adminMode) return;
+    const cur = isOpenNowKST();
+    if (cur !== lastOpenState){
+      applyOpenState();
+      renderDateChoices();
+    }
+    lastOpenState = cur;
+  }, 1000);
+}
+
+/* ========= 유틸 ========= */
+function ymdRange(start, end){
+  const out=[]; const s=new Date(start+'T00:00:00'); const e=new Date(end+'T00:00:00');
+  for (let d=new Date(s); d<=e; d.setDate(d.getDate()+1)){
+    const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+    out.push(`${y}-${m}-${dd}`);
+  } return out;
+}
+function months2026(){ return Array.from({length:12},(_,i)=>`2026-${String(i+1).padStart(2,'0')}`); }
+function weekday(ymd){ return new Date(ymd+'T00:00:00').getDay(); }
+function label(ymd){ return `${ymd}(${CONFIG.WEEKDAY_KO[weekday(ymd)]})`; }
+function defaultCap(ymd){ return CONFIG.CAPACITY_BY_WEEKDAY[weekday(ymd)] || 0; }
+function capacityFor(ymd, store){
+  if (store.overrides && Number.isFinite(store.overrides[ymd])) return Math.max(0, Number(store.overrides[ymd]));
+  return defaultCap(ymd);
+}
+function fmtTime(ts){ try{ const d=new Date(ts); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}catch(e){return '';}}
+
+/* roster */
+function getRoster(){ const st=loadStore(); return Array.isArray(st.roster)&&st.roster.length?st.roster:CONFIG.DEFAULT_ROSTER.slice(); }
+function setRoster(arr){ const st=loadStore(); st.roster=arr.slice(); saveStore(st); }
+
+/* ========= 좌측 폼 ========= */
+const nameSelect = $('#nameSelect'); const datesBox = $('#dates'); const resultBox = $('#result');
+
+function renderNameSelect(){
+  const roster = getRoster(); nameSelect.innerHTML='';
+  const o0=document.createElement('option'); o0.value=''; o0.textContent='이름 선택'; nameSelect.appendChild(o0);
+  roster.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; nameSelect.appendChild(o); });
+}
+function enumerateSelectableDatesForMonth(ym){
+  const [Y,M]=ym.split('-');
+  const monthStart = `${ym}-01`;
+  const lastDay = new Date(Number(Y), Number(M), 0).getDate();
+  const monthEnd = `${ym}-${String(lastDay).padStart(2,'0')}`;
+  return ymdRange(monthStart, monthEnd)
+    .filter(ymd => !CONFIG.HOLIDAYS_2026[ymd])
+    .filter(ymd => capacityFor(ymd, loadStore())>0)
+    .map(ymd => label(ymd));
+}
+function usedCountTotal(lab, store){
+  const ymd = lab.slice(0,10);
+  const approved = store.counts[lab] || 0;
+  const pending  = (store.pending[ymd]?.length)||0;
+  return approved + pending;
+}
+function renderDateChoices(){
+  const store = loadStore(); const ym = monthSelect.value || '2026-01';
+  datesBox.innerHTML='';
+  enumerateSelectableDatesForMonth(ym).forEach(lab=>{
+    const ymd = lab.slice(0,10);
+    const limit = capacityFor(ymd, store);
+    const used  = usedCountTotal(lab, store);
+    const full  = limit>0 && used>=limit;
+
+    const row = document.createElement('div'); row.className='date-item '+(full?'disabled':'');
+    const cb = document.createElement('input'); cb.type='checkbox'; cb.value=lab; cb.disabled = full || (!adminMode && !isOpenNowKST());
+    const lb = document.createElement('label'); lb.style.margin='0'; lb.style.flex='1'; lb.textContent = full ? `${lab} - 마감` : lab;
+    const cap = document.createElement('span'); cap.className='pill'; cap.textContent = `정원 ${used}/${limit}`;
+    if (full){ cap.style.background='#fee2e2'; cap.style.color='#991b1b'; }
+    row.appendChild(cb); row.appendChild(lb); row.appendChild(cap);
+    datesBox.appendChild(row);
+  });
+}
+document.getElementById('submitBtn').addEventListener('click', ()=>{
+  if (!adminMode && !isOpenNowKST()){ alert('신청은 매월 25일 09:00~말일 23:59:59 (KST)만 가능합니다.'); return; }
+  const name = nameSelect.value.trim(); if (!name){ alert('이름을 선택하세요.'); return; }
+  const selected = Array.from(datesBox.querySelectorAll('input[type=checkbox]:checked')).map(x=>x.value);
+  if (!selected.length){ alert('희망 날짜를 선택하세요.'); return; }
+
+  const store = loadStore(); const queued=[]; const seen=new Set(); const now=Date.now();
+  selected.forEach(lab=>{
+    if (seen.has(lab)) return; seen.add(lab);
+    const ymd = lab.slice(0,10);
+    if (!store.pending[ymd]) store.pending[ymd]=[];
+    const dupPending = store.pending[ymd].some(p=>p.name===name);
+    const dupApproved = (store.mapByDate[ymd]||[]).includes(name);
+    if (!dupPending && !dupApproved){ store.pending[ymd].push({name, ts:now}); queued.push(lab); }
+  });
+  saveStore(store);
+  renderPendingList(); renderDateChoices(); renderCalendar();
+  datesBox.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=false);
+  resultBox.innerHTML = queued.length
+    ? `<div class="ok">승인 대기 접수됨: ${queued.join(', ')}</div>`
+    : `<div class="warn">이미 대기/승인된 날짜만 선택되었습니다.</div>`;
+});
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  datesBox.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=false);
+  resultBox.textContent='';
+});
+
+/* ========= 월/관리자 ========= */
+const monthSelect = $('#monthSelect');
+function renderMonthSelect(){
+  monthSelect.innerHTML='';
+  months2026().forEach(ym=>{
+    const [y,m]=ym.split('-'); const o=document.createElement('option');
+    o.value=ym; o.textContent=`${y}년 ${m}월`; monthSelect.appendChild(o);
+  });
+  monthSelect.value='2026-01';
+}
+monthSelect?.addEventListener('change', ()=>{
+  renderCalendar(); renderPendingList(); renderCapacityPanel(); renderDateChoices();
+});
+function updateAdminVisibility(){
+  document.querySelectorAll('.admin-only').forEach(el=>{ el.style.display = adminMode ? '' : 'none'; });
+}
+document.getElementById('adminBtn').addEventListener('click', ()=>{
+  if (!adminMode){
+    if (document.getElementById('adminPw').value === CONFIG.ADMIN_PW){
+      adminMode = true; document.getElementById('adminBtn').textContent = '관리자 모드 ON';
+    } else { alert('관리자 비밀번호가 올바르지 않습니다.'); return; }
+  } else { adminMode = false; document.getElementById('adminBtn').textContent = '관리자 모드 OFF'; }
+  renderPendingList(); renderCalendar(); renderDateChoices(); renderCapacityPanel(); renderRosterPanel();
+  updateAdminVisibility(); applyOpenState();
+});
+
+/* ========= 대기자 ========= */
+function renderPendingList(){
+  const store = loadStore(); const ym = monthSelect.value || '2026-01';
+  const [Y,M]=ym.split('-'); document.getElementById('pendingMonthLabel').textContent = `${Y}년 ${M}월`;
+  const box = document.getElementById('pendingList'); box.innerHTML = '';
+  const lastDay = new Date(Number(Y), Number(M), 0).getDate();
+  const days = ymdRange(`${ym}-01`, `${ym}-${String(lastDay).padStart(2,'0')}`);
+
+  let any=false;
+  days.forEach(ymd=>{
+    const arr = (store.pending[ymd]||[]).slice().sort((a,b)=>a.ts-b.ts);
+    if (!arr.length) return; any = true;
+
+    const title = document.createElement('div'); title.style.cssText='font-weight:700;margin:4px 0 2px;';
+    title.textContent = `${ymd} (${CONFIG.WEEKDAY_KO[weekday(ymd)]})`; box.appendChild(title);
+
+    arr.forEach(item=>{
+      const row=document.createElement('div'); row.className='pending-name';
+      const left=document.createElement('div'); left.className='pending-left';
+      const time=document.createElement('span'); time.className='pending-time'; time.textContent = `[${fmtTime(item.ts)}]`;
+      const nm=document.createElement('span'); nm.textContent = item.name;
+      left.appendChild(time); left.appendChild(nm);
+
+      const right=document.createElement('div'); right.className='pending-actions';
+      const okBtn=document.createElement('button'); okBtn.className='btn small'; okBtn.textContent='O';
+      const noBtn=document.createElement('button'); noBtn.className='btn small'; noBtn.textContent='X';
+      if (!adminMode){ okBtn.disabled=true; noBtn.disabled=true; }
+      okBtn.addEventListener('click', ()=>approveOne(ymd, item.name));
+      noBtn.addEventListener('click', ()=>rejectOne(ymd, item.name));
+      right.appendChild(okBtn); right.appendChild(noBtn);
+      row.appendChild(left); row.appendChild(right); box.appendChild(row);
+    });
+  });
+  if (!any) box.innerHTML = `<div style="color:var(--muted);">선택 월 대기자가 없습니다.</div>`;
+}
+function approveOne(ymd, name){
+  const store = loadStore(); const cap = capacityFor(ymd, store);
+  const lab = label(ymd); const usedApproved = store.counts[lab] || 0;
+  if (cap>0 && usedApproved>=cap){ alert('정원이 가득 찼습니다. 정원부터 늘려주세요.'); return; }
+  const arr = store.pending[ymd]||[]; const idx = arr.findIndex(x=>x.name===name); if (idx>=0) arr.splice(idx,1);
+  store.pending[ymd] = arr;
+  if (!store.mapByDate[ymd]) store.mapByDate[ymd]=[];
+  if (!store.mapByDate[ymd].includes(name)) store.mapByDate[ymd].push(name);
+  store.counts[lab] = (store.counts[lab]||0) + 1;
+
+  store.mapColors = store.mapColors || {}; store.mapColors[ymd] = store.mapColors[ymd] || {};
+  if (!store.mapColors[ymd][name]) store.mapColors[ymd][name] = CONFIG.DEFAULT_NAME_COLOR;
+
+  saveStore(store); renderPendingList(); renderDateChoices(); renderCalendar();
+}
+function rejectOne(ymd, name){
+  const store = loadStore(); const arr = store.pending[ymd]||[];
+  const idx = arr.findIndex(x=>x.name===name); if (idx>=0) arr.splice(idx,1);
+  store.pending[ymd]=arr; saveStore(store); renderPendingList(); renderDateChoices();
+}
+
+/* ========= 정원 편집 (일요일/공휴일 제외) ========= */
+function renderCapacityPanel(){
+  const store = loadStore(); const ym = monthSelect.value || '2026-01';
+  const [Y,M]=ym.split('-'); const lastDay = new Date(Number(Y), Number(M), 0).getDate();
+  const box = document.getElementById('capList'); box.innerHTML='';
+
+  for (let d=1; d<=lastDay; d++){
+    const ymd = `${Y}-${M}-${String(d).padStart(2,'0')}`;
+    const wd = weekday(ymd);
+    if (wd === 0 || CONFIG.HOLIDAYS_2026[ymd]) continue; // 일요일/공휴일 제외
+    const row = document.createElement('div'); row.className='capacity-row';
+    const left = document.createElement('div'); left.textContent = `${ymd} (${CONFIG.WEEKDAY_KO[wd]})`;
+    const inp = document.createElement('input'); inp.type='number'; inp.min='0'; inp.step='1';
+    inp.value = capacityFor(ymd, store); inp.disabled = !adminMode; inp.dataset.ymd = ymd;
+    row.appendChild(left); row.appendChild(inp); box.appendChild(row);
+  }
+}
+document.getElementById('capSaveBtn').addEventListener('click', ()=>{
+  if (!adminMode){ alert('관리자 모드에서만 저장할 수 있습니다.'); return; }
+  const store = loadStore();
+  const inputs = Array.from(document.querySelectorAll('#capList input[type=number]'));
+  inputs.forEach(inp=>{
+    const ymd = inp.dataset.ymd; const v = Math.max(0, Number(inp.value)||0);
+    const def = defaultCap(ymd); if (v===def) delete store.overrides[ymd]; else store.overrides[ymd] = v;
+  });
+  saveStore(store); renderDateChoices(); renderCalendar(); alert('정원이 저장되었습니다.');
+});
+
+/* ========= 이름 관리 ========= */
+function renderRosterPanel(){
+  const list = getRoster(); const box = document.getElementById('rosterList'); box.innerHTML='';
+  list.forEach(n=>{
+    const row = document.createElement('div'); row.className='pending-name';
+    const left = document.createElement('div'); left.textContent = n;
+    const right = document.createElement('div');
+    const del = document.createElement('button'); del.className='btn small'; del.textContent='삭제';
+    del.disabled = !adminMode;
+    del.addEventListener('click', ()=>{
+      if (!adminMode) return;
+      const l2 = getRoster().filter(x=>x!==n); setRoster(l2);
+      renderRosterPanel(); renderNameSelect();
+    });
+    right.appendChild(del); row.appendChild(left); row.appendChild(right); box.appendChild(row);
+  });
+}
+document.getElementById('rosterAddBtn').addEventListener('click', ()=>{
+  if (!adminMode){ alert('관리자 모드에서만 이름을 추가할 수 있습니다.'); return; }
+  const v = (document.getElementById('rosterNew').value||'').trim(); if (!v) return;
+  const list = getRoster(); if (!list.includes(v)){ list.push(v); setRoster(list);
+    document.getElementById('rosterNew').value=''; renderRosterPanel(); renderNameSelect();
+  } else { alert('이미 존재하는 이름입니다.'); }
+});
+
+/* ========= 달력 ========= */
+const calendarBox = document.getElementById('calendar');
+function renderCalendar(){
+  const store = loadStore(); store.mapColors = store.mapColors || {};
+  const ym = monthSelect.value || '2026-01'; const [Y,M]=ym.split('-');
+  const first = new Date(Number(Y), Number(M)-1, 1);
+  const startDow = first.getDay(); const days = new Date(Number(Y), Number(M), 0).getDate();
+
+  calendarBox.innerHTML = '';
+  const dow = document.createElement('div'); dow.className='grid';
+  CONFIG.WEEKDAY_KO.forEach(w=>{ const d=document.createElement('div'); d.className='dow'; d.textContent=w; dow.appendChild(d); });
+  calendarBox.appendChild(dow);
+
+  const grid = document.createElement('div'); grid.className='grid';
+  for (let i=0;i<42;i++){
+    const idx = i - startDow; const cell = document.createElement('div'); cell.className='cell';
+    if (idx<0 || idx>=days){ cell.classList.add('muted'); grid.appendChild(cell); continue; }
+    const d = idx+1; const ymd = `${Y}-${M}-${String(d).padStart(2,'0')}`;
+    const lab = label(ymd); const cap = capacityFor(ymd, store);
+    const usedApproved = store.counts[lab]||0; const names = (store.mapByDate[ymd]||[]);
+    const isHoliday = !!CONFIG.HOLIDAYS_2026[ymd];
+    const daySpan=document.createElement('div'); daySpan.className = isHoliday? 'holiday day' : 'day';
+    daySpan.textContent = isHoliday ? `${d} ${CONFIG.HOLIDAYS_2026[ymd]}` : String(d); cell.appendChild(daySpan);
+
+    const namesDiv=document.createElement('div'); namesDiv.className='names';
+    names.forEach((nm)=>{
+      const pill = document.createElement('span'); pill.className='name-pill';
+      const colorMap = store.mapColors[ymd] || {}; const color = colorMap[nm] || CONFIG.DEFAULT_NAME_COLOR;
+      const txt = document.createElement('span'); txt.textContent = nm; txt.style.color = color; pill.appendChild(txt);
+      if (adminMode){
+        const tools = document.createElement('span'); tools.className='pill-tools';
+        const editBtn = document.createElement('button'); editBtn.className='btn small'; editBtn.title='이름 변경'; editBtn.textContent='✏️';
+        editBtn.addEventListener('click', ()=>{
+          const newName = (prompt('새 이름을 입력하세요', nm)||'').trim(); if (!newName || newName===nm) return;
+          const arr = store.mapByDate[ymd]||[]; if (arr.includes(newName)){ alert('이미 같은 이름이 있습니다.'); return; }
+          const pos = arr.indexOf(nm); if (pos>=0) { arr[pos] = newName; store.mapByDate[ymd] = arr; }
+          store.mapColors[ymd] = store.mapColors[ymd] || {}; const oldColor = store.mapColors[ymd][nm] || CONFIG.DEFAULT_NAME_COLOR;
+          delete store.mapColors[ymd][nm]; store.mapColors[ymd][newName] = oldColor; saveStore(store); renderCalendar();
+        });
+        const sel = document.createElement('select'); sel.className='color-sel';
+        CONFIG.COLOR_PALETTE.forEach(p=>{ const opt=document.createElement('option'); opt.value=p.val; opt.textContent=p.name; opt.style.color=p.val; sel.appendChild(opt); });
+        sel.value = color; sel.addEventListener('change', ()=>{ store.mapColors[ymd] = store.mapColors[ymd] || {}; store.mapColors[ymd][nm] = sel.value; saveStore(store); renderCalendar(); });
+        const x = document.createElement('button'); x.className='btn small name-del'; x.title='이 이름 삭제'; x.textContent='X';
+        x.addEventListener('click', ()=>{ const arr=(store.mapByDate[ymd]||[]); const pos=arr.indexOf(nm); if (pos>=0){ arr.splice(pos,1); store.mapByDate[ymd]=arr; }
+          store.counts[lab] = Math.max(0, (store.counts[lab]||0)-1); store.mapColors[ymd] = store.mapColors[ymd] || {}; delete store.mapColors[ymd][nm]; saveStore(store); renderCalendar(); renderDateChoices(); });
+        tools.appendChild(editBtn); tools.appendChild(sel); tools.appendChild(x); pill.appendChild(tools);
+      }
+      namesDiv.appendChild(pill);
+    });
+    cell.appendChild(namesDiv);
+
+    const stat=document.createElement('div');
+    stat.style.cssText='position:absolute; bottom:6px; right:8px; font-size:12px; color:#374151;';
+    stat.textContent = `정원 ${usedApproved}/${cap}`;
+    if (cap>0 && usedApproved>=cap){ cell.style.background='#fff7f7'; cell.style.borderColor='#fecaca'; }
+    grid.appendChild(cell);
+  }
+  calendarBox.appendChild(grid);
+}
+
+/* ========= 초기 부트 ========= */
+function boot(){
+  renderNameSelect(); renderMonthSelect(); renderDateChoices(); renderCapacityPanel();
+  renderRosterPanel(); renderPendingList(); renderCalendar(); updateAdminVisibility(); applyOpenState();
+  startOpenWatcher(); // ★ 매초 상태 자동 감시 (25일 09시 자동 활성화, 말일 23:59:59 이후 자동 비활성화)
+}
+(function safeBoot(){ try{ const app=document.getElementById('app'); if (app) app.style.display='block'; boot(); }
+catch(e){ alert('초기화 오류: ' + (e && e.message ? e.message : e)); console.error(e); const app=document.getElementById('app'); if (app) app.style.display='block'; }})();
+</script>
+</body>
+</html>
