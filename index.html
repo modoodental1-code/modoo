@@ -110,7 +110,7 @@
       </div>
 
       <div id="openNote" class="closed-note" style="display:none;">
-        매월 25일 9시~말일 오픈
+        매월 25일 오전 9시 오픈
         <div id="countdown"></div>
       </div>
 
@@ -230,8 +230,7 @@ function daysInMonth(y,m){ return new Date(y, m, 0).getDate(); }
 function openWindowUTCFor(year, month){
   const mm = String(month).padStart(2,'0');
   const startUTC = Date.parse(`${year}-${mm}-25T09:00:00+09:00`); // 25일 09:00:00 KST
-  const last = daysInMonth(year, month);
-  const endUTC = Date.parse(`${year}-${mm}-${String(last).padStart(2,'0')}T23:59:59+09:00`); // 말일 23:59:59 KST
+  const endUTC   = Date.parse(`${year}-${mm}-25T23:59:59+09:00`);// 말일 23:59:59 KST
   return {startUTC, endUTC};
 }
 function isOpenNowKST(){
