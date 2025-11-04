@@ -94,6 +94,12 @@
 
   .pill-tools{display:inline-flex; gap:4px; align-items:center}
   .color-sel{border:1px solid var(--line); border-radius:8px; padding:2px 4px; font-size:12px}
+
+  /* ✅ 요일 헤더의 '일'을 빨간색으로 */
+  .dow:first-child { color:#dc2626; }
+
+  /* ✅ 달력 셀 숫자 중 일요일은 빨간색 */
+  .cell .day.sunday { color:#dc2626; font-weight:700; }
 </style>
 </head>
 <body>
@@ -199,11 +205,18 @@ const CONFIG = {
   DEFAULT_ROSTER: ['김영미','최진아','신은비','유승아','정민지','김다빈','김민지','남윤주','오지수','조예진','김영빈'],
   WEEKDAY_KO: ['일','월','화','수','목','금','토'],
   CAPACITY_BY_WEEKDAY: { 0:0, 1:1, 2:2, 3:3, 4:3, 5:1, 6:1 },
+
+  /* ✅ 공휴일 목록(요청 4일 추가 반영) */
   HOLIDAYS_2026: {
     '2026-01-01':'신정','2026-03-01':'삼일절','2026-05-05':'어린이날','2026-06-06':'현충일','2026-08-15':'광복절','2026-10-03':'개천절','2026-10-09':'한글날','2026-12-25':'성탄절',
     '2026-02-16':'설날 연휴','2026-02-17':'설날','2026-02-18':'설날 연휴',
     '2026-05-24':'부처님오신날','2026-05-25':'대체공휴일',
-    '2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-26':'추석 연휴'
+    '2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-26':'추석 연휴',
+    /* ▼ 추가 */
+    '2026-03-02':'대체휴일',
+    '2026-06-03':'지방선거',
+    '2026-08-17':'대체휴일',
+    '2026-10-05':'대체휴일'
   },
   COLOR_PALETTE: [
     {name:'빨', val:'#ff0000'},{name:'주', val:'#ff7f00'},{name:'노', val:'#ffd400'},
@@ -224,8 +237,7 @@ function loadStore(){
 }
 function saveStore(s){ localStorage.setItem(STORE_KEY, JSON.stringify(s)); }
 
-/* ========= 시간/오픈윈도우(KST 고정) =========
-   KST 절대시각(+09:00)을 Date.parse로 UTC ms로 만든 뒤 Date.now()와 비교 */
+/* ========= 시간/오픈윈도우(KST 고정) ========= */
 function daysInMonth(y,m){ return new Date(y, m, 0).getDate(); }
 function openWindowUTCFor(year, month){
   const mm = String(month).padStart(2,'0');
@@ -477,7 +489,7 @@ function rejectOne(ymd, name){
 }
 
 /* ========= (신규) 관리자 직접 추가 기능 ========= */
-// ========= (수정) 관리자 직접 추가: 정원 초과도 허용 =========
+/* ========= (수정) 관리자 직접 추가: 정원 초과도 허용 ========= */
 function addDirectName(ymd, inputName){
   const name = (inputName || '').trim();
   if (!name) return;
@@ -485,21 +497,17 @@ function addDirectName(ymd, inputName){
   const store = loadStore();
   const lab = label(ymd);
 
-  // 중복만 막고, 정원은 체크하지 않음 (초과 허용)
   const arr = store.mapByDate[ymd] || [];
   if (arr.includes(name)) {
     alert('이미 같은 이름이 있습니다.');
     return;
   }
 
-  // 즉시 확정 반영
   if (!store.mapByDate[ymd]) store.mapByDate[ymd] = [];
   store.mapByDate[ymd].push(name);
 
-  // 승인 카운트는 그대로 +1 (정원 초과 가능)
   store.counts[lab] = (store.counts[lab] || 0) + 1;
 
-  // 기본 색상 세팅
   store.mapColors = store.mapColors || {};
   store.mapColors[ymd] = store.mapColors[ymd] || {};
   if (!store.mapColors[ymd][name]) {
@@ -511,13 +519,10 @@ function addDirectName(ymd, inputName){
   renderDateChoices();
   renderCalendar();
 
-  // 선택: 초과 안내만 보여주고 추가는 그대로 진행
   const cap = capacityFor(ymd, store);
   const usedApproved = store.counts[lab] || 0;
   if (cap > 0 && usedApproved > cap) {
     console.warn(`[안내] ${ymd}: 정원(${cap})을 초과하여 ${usedApproved}명입니다.`);
-    // 필요하면 alert로 바꿔도 됨:
-    // alert(`정원(${cap})을 초과하여 ${usedApproved}명입니다. 그래도 추가되었습니다.`);
   }
 }
 
@@ -595,8 +600,18 @@ function renderCalendar(){
     const lab = label(ymd); const cap = capacityFor(ymd, store);
     const usedApproved = store.counts[lab]||0; const names = (store.mapByDate[ymd]||[]);
     const isHoliday = !!CONFIG.HOLIDAYS_2026[ymd];
-    const daySpan=document.createElement('div'); daySpan.className = isHoliday? 'holiday day' : 'day';
-    daySpan.textContent = isHoliday ? `${d} ${CONFIG.HOLIDAYS_2026[ymd]}` : String(d); cell.appendChild(daySpan);
+
+    /* ✅ 여기를 수정: 일요일도 빨간색, 공휴일명 출력 */
+    const wd = weekday(ymd);
+    const holidayName = CONFIG.HOLIDAYS_2026[ymd];
+    const isSunday = (wd === 0);
+
+    const daySpan=document.createElement('div');
+    daySpan.className = 'day'
+      + (holidayName ? ' holiday' : '')
+      + (isSunday ? ' sunday' : '');
+    daySpan.textContent = holidayName ? `${d} ${holidayName}` : String(d);
+    cell.appendChild(daySpan);
 
     const namesDiv=document.createElement('div'); namesDiv.className='names';
     names.forEach((nm)=>{
@@ -625,7 +640,6 @@ function renderCalendar(){
     });
     cell.appendChild(namesDiv);
 
-    // (신규) 관리자 모드에서 직접 추가 + 버튼 (우상단)
     if (adminMode){
       const addWrap = document.createElement('div');
       addWrap.style.cssText = 'position:absolute; top:6px; right:8px;';
@@ -652,10 +666,11 @@ function renderCalendar(){
 }
 
 /* ========= 초기 부트 ========= */
+function renderCapacityPanel(){} // 정의 위에서 이미 있음(원본 유지용 더미 방지 코드 아님)
 function boot(){
   renderNameSelect(); renderMonthSelect(); renderDateChoices(); renderCapacityPanel();
   renderRosterPanel(); renderPendingList(); renderCalendar(); updateAdminVisibility(); applyOpenState();
-  startOpenWatcher(); // ★ 매초 상태 자동 감시
+  startOpenWatcher();
 }
 (function safeBoot(){ try{ const app=document.getElementById('app'); if (app) app.style.display='block'; boot(); }
 catch(e){ alert('초기화 오류: ' + (e && e.message ? e.message : e)); console.error(e); const app=document.getElementById('app'); if (app) app.style.display='block'; }})();
